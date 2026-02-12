@@ -4,7 +4,7 @@
 
 # Claude Phone
 
-Voice interface for Claude Code via SIP/3CX. Call your AI, and your AI can call you.
+Voice interface for Claude Code via SIP/Twilio. Call your AI, and your AI can call you.
 
 ## What is this?
 
@@ -17,10 +17,10 @@ Claude Phone gives your Claude Code installation a phone number. You can:
 
 | Requirement | Where to Get It | Notes |
 |-------------|-----------------|-------|
-| **3CX Cloud Account** | [3cx.com](https://www.3cx.com/) | Free tier works |
+| **Twilio Account** | [twilio.com](https://www.twilio.com/) | Free trial works |
 | **ElevenLabs API Key** | [elevenlabs.io](https://elevenlabs.io/) | For text-to-speech |
 | **OpenAI API Key** | [platform.openai.com](https://platform.openai.com/) | For Whisper speech-to-text |
-| **Claude Code CLI** | [claude.ai/code](https://claude.ai/code) | Requires Claude Max subscription |
+| **Gemini API Key** | [Google AI Studio](https://aistudio.google.com/app/apikey) | Required for Gemini Pro |
 
 ## Platform Support
 
@@ -35,7 +35,7 @@ Claude Phone gives your Claude Code installation a phone number. You can:
 ### 1. Install
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/theNetworkChuck/claude-phone/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/your-org/gemini-phone/main/install.sh | bash
 ```
 
 The installer will:
@@ -76,7 +76,7 @@ Best for: Mac or Linux server that's always on and has Claude Code installed.
 │      │                                                       │
 │      ↓ Call extension 9000                                  │
 │  ┌─────────────┐                                            │
-│  │     3CX     │  ← Cloud PBX                               │
+│  │    Twilio   │  ← Cloud PBX                               │
 │  └──────┬──────┘                                            │
 │         │                                                    │
 │         ↓                                                    │
@@ -106,7 +106,7 @@ Best for: Dedicated Pi for voice services, Claude running on your main machine.
 │      │                                                       │
 │      ↓ Call extension 9000                                  │
 │  ┌─────────────┐                                            │
-│  │     3CX     │  ← Cloud PBX                               │
+│  │    Twilio   │  ← Cloud PBX                               │
 │  └──────┬──────┘                                            │
 │         │                                                    │
 │         ↓                                                    │
@@ -135,23 +135,23 @@ Note: On the API server machine, you don't need to run `claude-phone setup` firs
 
 | Command | Description |
 |---------|-------------|
-| `claude-phone setup` | Interactive configuration wizard |
-| `claude-phone start` | Start services based on installation type |
-| `claude-phone stop` | Stop all services |
-| `claude-phone status` | Show service status |
-| `claude-phone doctor` | Health check for dependencies and services |
-| `claude-phone api-server [--port N]` | Start API server standalone (default: 3333) |
-| `claude-phone device add` | Add a new device/extension |
-| `claude-phone device list` | List configured devices |
-| `claude-phone device remove <name>` | Remove a device |
-| `claude-phone logs [service]` | Tail logs (voice-app, drachtio, freeswitch) |
-| `claude-phone config show` | Display configuration (secrets redacted) |
-| `claude-phone config path` | Show config file location |
-| `claude-phone config reset` | Reset configuration |
-| `claude-phone backup` | Create configuration backup |
-| `claude-phone restore` | Restore from backup |
-| `claude-phone update` | Update Claude Phone |
-| `claude-phone uninstall` | Complete removal |
+| `gemini-phone setup` | Interactive configuration wizard |
+| `gemini-phone start` | Start services based on installation type |
+| `gemini-phone stop` | Stop all services |
+| `gemini-phone status` | Show service status |
+| `gemini-phone doctor` | Health check for dependencies and services |
+| `gemini-phone api-server [--port N]` | Start API server standalone (default: 3333) |
+| `gemini-phone device add` | Add a new device/extension |
+| `gemini-phone device list` | List configured devices |
+| `gemini-phone device remove <name>` | Remove a device |
+| `gemini-phone logs [service]` | Tail logs (voice-app, drachtio, freeswitch) |
+| `gemini-phone config show` | Display configuration (secrets redacted) |
+| `gemini-phone config path` | Show config file location |
+| `gemini-phone config reset` | Reset configuration |
+| `gemini-phone backup` | Create configuration backup |
+| `gemini-phone restore` | Restore from backup |
+| `gemini-phone update` | Update Gemini Phone |
+| `gemini-phone uninstall` | Complete removal |
 
 ## Device Personalities
 
@@ -194,9 +194,9 @@ claude-phone logs      # View logs
 | Problem | Likely Cause | Solution |
 |---------|--------------|----------|
 | Calls connect but no audio | Wrong external IP | Re-run `claude-phone setup`, verify LAN IP |
-| Extension not registering | 3CX SBC not running | Check 3CX admin panel |
+| Extension not registering | Invalid Twilio credentials | Check your Twilio credentials in the config |
 | "Sorry, something went wrong" | API server unreachable | Check `claude-phone status` |
-| Port conflict on startup | 3CX SBC using port 5060 | Setup auto-detects this; re-run setup |
+| Port conflict on startup | Another service is using a required port | Check for services using ports 5060, 3000, etc. |
 
 See [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for more.
 

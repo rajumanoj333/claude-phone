@@ -49,3 +49,5 @@ temp/
 !assets/*.png
 !assets/*.jpg
 voice-app/config/devices.json
+google-service-account.json
+.env

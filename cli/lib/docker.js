@@ -96,10 +96,8 @@ export function generateDockerCompose(config) {
     };
   }
 
-  // Determine drachtio port from config (5070 when 3CX SBC detected, 5060 otherwise)
-  const drachtioPort = config.deployment && config.deployment.pi && config.deployment.pi.drachtioPort
-    ? config.deployment.pi.drachtioPort
-    : 5060;
+  // Determine drachtio port
+  const drachtioPort = 5060;
 
   // Determine if running on Pi (ARM64) - use specific versions with platform
   const isPiMode = config.deployment && config.deployment.mode === 'pi-split';
@@ -208,9 +206,9 @@ export function generateEnvFile(config) {
     // Note: This is the default ESL password for drachtio/drachtio-freeswitch-mrf
     'FREESWITCH_SECRET=JambonzR0ck$',
     '',
-    '# 3CX / SIP Configuration',
-    `SIP_DOMAIN=${config.sip.domain}`,
-    `SIP_REGISTRAR=${config.sip.registrar}`,
+    '# Twilio Configuration',
+    `TWILIO_ACCOUNT_SID=${config.twilio.accountSid}`,
+    `TWILIO_AUTH_TOKEN=${config.twilio.authToken}`,
     '',
     '# Default extension (primary device)',
     `SIP_EXTENSION=${config.devices[0].extension}`,

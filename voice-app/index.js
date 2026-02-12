@@ -16,7 +16,7 @@ var sipHandler = require("./lib/sip-handler");
 var handleInvite = sipHandler.handleInvite;
 var extractCallerId = sipHandler.extractCallerId;
 var whisperClient = require("./lib/whisper-client");
-var claudeBridge = require("./lib/claude-bridge");
+var geminiBridge = require("./lib/gemini-bridge");
 var ttsService = require("./lib/tts-service");
 
 // Multi-extension support
@@ -51,15 +51,7 @@ var config = {
     host: process.env.FREESWITCH_HOST || "freeswitch",
     port: parseInt(process.env.FREESWITCH_PORT) || 8021,
     secret: process.env.FREESWITCH_SECRET || "JambonzR0ck$"
-  },
-  sip: {
-    extension: process.env.SIP_EXTENSION || "9000",
-    auth_id: process.env.SIP_AUTH_ID || "Au0XZPTpJY",
-    password: process.env.SIP_AUTH_PASSWORD || "DGHwMW6v25",
-    domain: process.env.SIP_DOMAIN || "hello.networkchuck.com",
-    registrar: process.env.SIP_REGISTRAR || "hello.networkchuck.com",
-    registrar_port: parseInt(process.env.SIP_REGISTRAR_PORT) || 5060,
-    expiry: parseInt(process.env.SIP_EXPIRY) || 3600
+
   },
   external_ip: process.env.EXTERNAL_IP || "10.70.7.81",
   http_port: parseInt(process.env.HTTP_PORT) || 3000,
@@ -85,8 +77,7 @@ console.log("=".repeat(64));
 console.log("\nConfiguration:");
 console.log("  - drachtio:    " + config.drachtio.host + ":" + config.drachtio.port);
 console.log("  - FreeSWITCH:  " + config.freeswitch.host + ":" + config.freeswitch.port);
-console.log("  - SIP Domain:  " + config.sip.domain);
-console.log("  - Registrar:   " + config.sip.registrar + ":" + config.sip.registrar_port);
+
 console.log("  - External IP: " + config.external_ip);
 console.log("  - HTTP Port:   " + config.http_port);
 console.log("  - WS Port:     " + config.ws_port);
@@ -114,19 +105,7 @@ srf.on("connect", function(err, hostport) {
   console.log("[DRACHTIO] Local SIP address: " + localAddress);
 
   // Start Multi-Registration for all devices
-  if (!registrar) {
-    registrar = new MultiRegistrar(srf, {
-      domain: config.sip.domain,
-      registrar: config.sip.registrar,
-      registrar_port: config.sip.registrar_port,
-      local_address: localAddress,
-      local_port: parseInt(process.env.DRACHTIO_SIP_PORT) || 5060,
-      expiry: config.sip.expiry
-    });
 
-    // Register all devices from config
-    registrar.registerAll(deviceRegistry.getRegistrationConfigs());
-  }
 
   checkReadyState();
 });
@@ -202,7 +181,7 @@ function initializeServers() {
     deviceRegistry: deviceRegistry,  // Required for device lookup
     audioForkServer: audioForkServer,
     whisperClient: whisperClient,
-    claudeBridge: claudeBridge,
+    geminiBridge: geminiBridge,
     ttsService: ttsService,
     wsPort: config.ws_port
   });
@@ -212,7 +191,7 @@ function initializeServers() {
 
   // ========== QUERY API ROUTES ==========
   setupQueryRoutes({
-    claudeBridge: claudeBridge
+    geminiBridge: geminiBridge
   });
 
   httpServer.app.use("/api", queryRouter);
@@ -244,7 +223,7 @@ function checkReadyState() {
         deviceRegistry: deviceRegistry,
         config: config,
         whisperClient: whisperClient,
-        claudeBridge: claudeBridge,
+        geminiBridge: geminiBridge,
         ttsService: ttsService,
         wsPort: config.ws_port,
         externalIp: config.external_ip

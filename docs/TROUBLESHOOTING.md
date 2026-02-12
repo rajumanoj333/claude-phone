@@ -36,15 +36,7 @@ claude-phone logs     # View recent logs
 - Free tier has limited characters/month
 - Check [elevenlabs.io/subscription](https://elevenlabs.io/subscription)
 
-### "Can't detect 3CX SBC"
 
-**Symptom:** Setup can't connect to your 3CX server.
-
-**Solutions:**
-1. Verify 3CX FQDN is correct (e.g., `yourcompany.3cx.us`)
-2. Ensure 3CX SBC (Session Border Controller) is enabled
-3. Check firewall allows port 5060 (SIP) outbound
-4. Try using port 5070 if 5060 is blocked
 
 ### "Docker not found" or "Docker not running"
 
@@ -80,37 +72,29 @@ sudo usermod -aG docker pi
 **Symptom:** Phone rings forever or immediately fails.
 
 **Checklist:**
-1. Is the extension registered with 3CX?
+1. Is the extension registered with Twilio?
    ```bash
    claude-phone status
    # Look for "SIP Registration: OK"
    ```
 
-2. Is the SIP domain correct?
-   ```bash
-   claude-phone config show
-   # Check sip.domain matches your 3CX FQDN
-   ```
+2. Are credentials correct?
+   - Log into Twilio console
+   - Check Twilio Account SID and Auth Token match config
 
-3. Are credentials correct?
-   - Log into 3CX admin panel
-   - Check extension auth ID and password match config
-
-4. Is drachtio container running?
+3. Is drachtio container running?
    ```bash
    docker ps | grep drachtio
    ```
 
-### Extension not registering with 3CX
+### Extension not registering with Twilio
 
 **Symptom:** `claude-phone status` shows SIP registration failed.
 
 **Solutions:**
-1. Verify extension exists in 3CX
-2. Check auth ID matches (usually same as extension number)
-3. Verify password is correct
-4. Ensure SBC is enabled in 3CX settings
-5. Check if another device is using the same extension
+1. Verify Twilio Account SID and Auth Token are correct in config
+2. Check your Twilio SIP Domain or Phone Number settings
+3. Ensure Twilio allows SIP registration from your server's IP
 
 ### Calls connect but no audio
 
@@ -133,26 +117,7 @@ claude-phone setup
 - NAT issues (server can't receive return audio)
 - FreeSWITCH container unhealthy
 
-### RTP Port Conflict (3CX SBC)
 
-**Symptom:** Calls fail with "INCOMPATIBLE_DESTINATION" error. Logs show `AUDIO RTP REPORTS ERROR: [Bind Error! IP:port]`.
-
-**Cause:** 3CX SBC uses RTP ports 20000-20099. If FreeSWITCH uses the same range, it can't bind.
-
-**Fix:** Claude Phone uses ports 30000-30100 by default. If you upgraded from an older version:
-
-```bash
-# Check current port config
-grep "rtp-range" ~/.claude-phone/docker-compose.yml
-
-# If it shows 20000, update to 30000:
-sed -i 's/--rtp-range-start 20000/--rtp-range-start 30000/' ~/.claude-phone/docker-compose.yml
-sed -i 's/--rtp-range-end 20100/--rtp-range-end 30100/' ~/.claude-phone/docker-compose.yml
-
-# Restart services
-claude-phone stop
-claude-phone start
-```
 
 ## Runtime Issues
 

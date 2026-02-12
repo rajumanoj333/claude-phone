@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import { generateDockerCompose, generateEnvFile } from '../lib/docker.js';
 
 test('docker compose generation', async (t) => {
-  await t.test('generates compose with default port 5060 when no drachtioPort specified', () => {
+  await t.test('generates compose with default port 5060', () => {
     const config = {
       server: {
         externalIp: '192.168.1.50',
@@ -26,35 +26,7 @@ test('docker compose generation', async (t) => {
       'Should use port 5060 by default');
   });
 
-  await t.test('generates compose with port 5070 when drachtioPort is 5070', () => {
-    const config = {
-      server: {
-        externalIp: '192.168.1.50',
-        httpPort: 3000,
-        claudeApiPort: 3333
-      },
-      paths: {
-        voiceApp: '/app/voice-app'
-      },
-      secrets: {
-        drachtio: 'test-secret-123',
-        freeswitch: 'test-secret-456'
-      },
-      deployment: {
-        pi: {
-          drachtioPort: 5070
-        }
-      }
-    };
-
-    const compose = generateDockerCompose(config);
-
-    // Should use port 5070 when specified in config
-    assert.ok(compose.includes('--contact "sip:*:5070;transport=tcp,udp"'),
-      'Should use port 5070 when Pi config specifies it');
-  });
-
-  await t.test('generates compose with port 5060 when drachtioPort explicitly set to 5060', () => {
+  await t.test('preserves other compose settings', () => {
     const config = {
       server: {
         externalIp: '192.168.1.50',
@@ -77,33 +49,6 @@ test('docker compose generation', async (t) => {
 
     const compose = generateDockerCompose(config);
 
-    assert.ok(compose.includes('--contact "sip:*:5060;transport=tcp,udp"'),
-      'Should use port 5060 when explicitly specified');
-  });
-
-  await t.test('preserves other compose settings when using custom port', () => {
-    const config = {
-      server: {
-        externalIp: '192.168.1.50',
-        httpPort: 3000,
-        claudeApiPort: 3333
-      },
-      paths: {
-        voiceApp: '/app/voice-app'
-      },
-      secrets: {
-        drachtio: 'test-secret-123',
-        freeswitch: 'test-secret-456'
-      },
-      deployment: {
-        pi: {
-          drachtioPort: 5070
-        }
-      }
-    };
-
-    const compose = generateDockerCompose(config);
-
     // Verify other settings remain intact
     assert.ok(compose.includes('network_mode: host'), 'Should use host networking');
     assert.ok(compose.includes('--sip-port 5080'), 'FreeSWITCH should use port 5080');
@@ -118,9 +63,9 @@ test('docker compose generation', async (t) => {
         httpPort: 3000,
         claudeApiPort: 3333
       },
-      sip: {
-        domain: '3cx.local',
-        registrar: '192.168.1.10'
+      twilio: {
+        accountSid: 'AC-test-sid',
+        authToken: 'test-auth-token'
       },
       devices: [
         {
@@ -153,6 +98,8 @@ test('docker compose generation', async (t) => {
       'Should use Mac API URL for pi-split mode');
     assert.ok(!envFile.includes('CLAUDE_API_URL=http://localhost:'),
       'Should not use localhost for pi-split mode');
+    assert.ok(envFile.includes('TWILIO_ACCOUNT_SID=AC-test-sid'), 'Should contain Twilio Account SID');
+    assert.ok(envFile.includes('TWILIO_AUTH_TOKEN=test-auth-token'), 'Should contain Twilio Auth Token');
   });
 
   await t.test('generates env file with localhost for standard mode', () => {
@@ -162,9 +109,9 @@ test('docker compose generation', async (t) => {
         httpPort: 3000,
         claudeApiPort: 3333
       },
-      sip: {
-        domain: '3cx.local',
-        registrar: '192.168.1.10'
+      twilio: {
+        accountSid: 'AC-test-sid',
+        authToken: 'test-auth-token'
       },
       devices: [
         {
@@ -192,6 +139,8 @@ test('docker compose generation', async (t) => {
     // Should use localhost for standard mode
     assert.ok(envFile.includes('CLAUDE_API_URL=http://localhost:3333'),
       'Should use localhost for standard mode');
+    assert.ok(envFile.includes('TWILIO_ACCOUNT_SID=AC-test-sid'), 'Should contain Twilio Account SID');
+    assert.ok(envFile.includes('TWILIO_AUTH_TOKEN=test-auth-token'), 'Should contain Twilio Auth Token');
   });
 
   await t.test('generates env file with localhost for both mode (all-in-one)', () => {
@@ -201,9 +150,9 @@ test('docker compose generation', async (t) => {
         httpPort: 3000,
         claudeApiPort: 3333
       },
-      sip: {
-        domain: '3cx.local',
-        registrar: '192.168.1.10'
+      twilio: {
+        accountSid: 'AC-test-sid',
+        authToken: 'test-auth-token'
       },
       devices: [
         {
@@ -235,6 +184,8 @@ test('docker compose generation', async (t) => {
     // Should NOT use any remote IP
     assert.ok(!envFile.includes('CLAUDE_API_URL=http://192.168.'),
       'Should not use remote IP for both mode');
+    assert.ok(envFile.includes('TWILIO_ACCOUNT_SID=AC-test-sid'), 'Should contain Twilio Account SID');
+    assert.ok(envFile.includes('TWILIO_AUTH_TOKEN=test-auth-token'), 'Should contain Twilio Auth Token');
   });
 
   await t.test('generates env file with remote API for voice-server mode', () => {
@@ -244,9 +195,9 @@ test('docker compose generation', async (t) => {
         httpPort: 3000,
         claudeApiPort: 3333
       },
-      sip: {
-        domain: '3cx.local',
-        registrar: '192.168.1.10'
+      twilio: {
+        accountSid: 'AC-test-sid',
+        authToken: 'test-auth-token'
       },
       devices: [
         {
@@ -278,5 +229,7 @@ test('docker compose generation', async (t) => {
 
     assert.ok(!envFile.includes('CLAUDE_API_URL=http://localhost:'),
       'voice-server mode should NOT use localhost when apiServerIp is set');
+    assert.ok(envFile.includes('TWILIO_ACCOUNT_SID=AC-test-sid'), 'Should contain Twilio Account SID');
+    assert.ok(envFile.includes('TWILIO_AUTH_TOKEN=test-auth-token'), 'Should contain Twilio Auth Token');
   });
 });

@@ -32,7 +32,7 @@ The wizard guides you through configuration based on your deployment type:
 Select this when setting up a Raspberry Pi or dedicated voice box that connects to a remote API server.
 
 **What it asks for:**
-1. 3CX SIP domain and registrar
+1. Twilio Account SID and Auth Token
 2. API server IP and port (where claude-api-server runs)
 3. ElevenLabs API key and default voice ID
 4. OpenAI API key (for Whisper STT)
@@ -62,7 +62,7 @@ Select this for a single machine running everything.
 **What it asks for:**
 1. ElevenLabs API key and default voice ID
 2. OpenAI API key
-3. 3CX SIP domain and registrar
+3. Twilio Account SID and Auth Token
 4. Device configuration
 5. Server LAN IP, API port, and HTTP port
 
@@ -74,7 +74,6 @@ Select this for a single machine running everything.
 
 On Raspberry Pi, the setup wizard:
 - Recommends "Voice Server" mode if you select "Both"
-- Checks for 3CX SBC on port 5060 and auto-configures drachtio to use 5070 to avoid conflicts
 - Uses optimized settings for Pi hardware
 
 ## Commands
@@ -154,10 +153,9 @@ All configuration is stored in `~/.claude-phone/`:
     "elevenlabs": { "apiKey": "...", "defaultVoiceId": "...", "validated": true },
     "openai": { "apiKey": "...", "validated": true }
   },
-  "sip": {
-    "domain": "your-3cx.3cx.us",
-    "registrar": "192.168.1.100",
-    "transport": "udp"
+  "twilio": {
+    "accountSid": "AC...",
+    "authToken": "..."
   },
   "server": {
     "claudeApiPort": 3333,

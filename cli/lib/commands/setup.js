@@ -16,11 +16,11 @@ import {
   validateVoiceId,
   validateExtension,
   validateIP,
-  validateHostname
+  validateHostname,
+  validateGeminiKey
 } from '../validators.js';
 import { getLocalIP, getProjectRoot } from '../utils.js';
 import { isRaspberryPi } from '../platform.js';
-import { detect3cxSbc } from '../port-check.js';
 import { checkPiPrerequisites } from '../prerequisites.js';
 import { checkClaudeApiServer } from '../network.js';
 import { runPrereqChecks } from '../prereqs.js';
@@ -63,7 +63,7 @@ async function promptInstallationType(currentType = 'both') {
  * @returns {Promise<void>}
  */
 export async function setupCommand(options = {}) {
-  console.log(chalk.bold.cyan('\n🎯 Claude Phone Setup\n'));
+  console.log(chalk.bold.cyan('\n🎯 Gemini Phone Setup\n'));
 
   // Run minimal prerequisite check first (Node.js only)
   if (!options.skipPrereqs) {
@@ -207,21 +207,21 @@ async function setupInstallationType(installationType, existingConfig, isPi, opt
 
   // Install dependencies for API server types
   if (installationType === 'api-server' || installationType === 'both') {
-    const apiServerPath = config.paths?.claudeApiServer;
-    if (apiServerPath && fs.existsSync(apiServerPath)) {
-      const nodeModulesPath = path.join(apiServerPath, 'node_modules');
+    const geminiApiServerPath = config.paths?.geminiApiServer;
+    if (geminiApiServerPath && fs.existsSync(geminiApiServerPath)) {
+      const nodeModulesPath = path.join(geminiApiServerPath, 'node_modules');
       if (!fs.existsSync(nodeModulesPath)) {
         const installSpinner = ora('Installing API server dependencies...').start();
         try {
           execSync('npm install', {
-            cwd: apiServerPath,
+            cwd: geminiApiServerPath,
             stdio: 'pipe'
           });
           installSpinner.succeed('API server dependencies installed');
         } catch (error) {
           installSpinner.fail(`Failed to install dependencies: ${error.message}`);
           console.log(chalk.yellow('\nYou can install manually with:'));
-          console.log(chalk.cyan(`  cd ${apiServerPath} && npm install\n`));
+          console.log(chalk.cyan(`  cd ${geminiApiServerPath} && npm install\n`));
         }
       }
     }
@@ -232,33 +232,33 @@ async function setupInstallationType(installationType, existingConfig, isPi, opt
 
   if (installationType === 'api-server') {
     console.log(chalk.gray('To start the API server:'));
-    console.log(chalk.gray('  claude-phone start\n'));
-    console.log(chalk.gray(`The API server will listen on port ${config.server.claudeApiPort}.`));
-    console.log(chalk.gray('Voice servers can connect to: http://YOUR_IP:' + config.server.claudeApiPort + '\n'));
+    console.log(chalk.gray('  gemini-phone start\n'));
+    console.log(chalk.gray(`The API server will listen on port ${config.server.geminiApiPort}.`));
+    console.log(chalk.gray('Voice servers can connect to: http://YOUR_IP:' + config.server.geminiApiPort + '\n'));
   } else if (installationType === 'voice-server') {
     if (isPi) {
       console.log(chalk.bold.cyan('📋 API server instructions:\n'));
       console.log(chalk.gray('  On your API server, run:'));
-      console.log(chalk.white(`    claude-phone api-server --port ${config.server.claudeApiPort}\n`));
-      console.log(chalk.gray('  This starts the Claude API wrapper that the Pi will connect to.\n'));
+      console.log(chalk.white(`    gemini-phone api-server --port ${config.server.geminiApiPort}\n`));
+      console.log(chalk.gray('  This starts the Gemini API wrapper that the Pi will connect to.\n'));
       console.log(chalk.bold.cyan('📋 Pi-side next steps:\n'));
-      console.log(chalk.gray('  1. Run "claude-phone start" to launch voice-app'));
+      console.log(chalk.gray('  1. Run "gemini-phone start" to launch voice-app'));
       console.log(chalk.gray('  2. Call extension ' + config.devices[0].extension + ' from your phone'));
-      console.log(chalk.gray('  3. Start talking to Claude!\n'));
+      console.log(chalk.gray('  3. Start talking to Gemini!\n'));
     } else {
       console.log(chalk.gray('Make sure your API server is running with:'));
-      console.log(chalk.gray('  claude-phone api-server (on the API server machine)\n'));
+      console.log(chalk.gray('  gemini-phone api-server (on the API server machine)\n'));
       console.log(chalk.gray('Next steps:'));
-      console.log(chalk.gray('  1. Run "claude-phone start" to launch voice services'));
+      console.log(chalk.gray('  1. Run "gemini-phone start" to launch voice services'));
       console.log(chalk.gray('  2. Call extension ' + config.devices[0].extension + ' from your phone'));
-      console.log(chalk.gray('  3. Start talking to Claude!\n'));
+      console.log(chalk.gray('  3. Start talking to Gemini!\n'));
     }
   } else {
     // Both
     console.log(chalk.gray('Next steps:'));
-    console.log(chalk.gray('  1. Run "claude-phone start" to launch all services'));
+    console.log(chalk.gray('  1. Run "gemini-phone start" to launch all services'));
     console.log(chalk.gray('  2. Call extension ' + config.devices[0].extension + ' from your phone'));
-    console.log(chalk.gray('  3. Start talking to Claude!\n'));
+    console.log(chalk.gray('  3. Start talking to Gemini!\n'));
   }
 }
 
@@ -274,7 +274,7 @@ async function setupApiServer(config) {
     type: 'input',
     name: 'port',
     message: 'API server port:',
-    default: config.server?.claudeApiPort || 3333,
+    default: config.server?.geminiApiPort || 3333,
     validate: (input) => {
       const port = parseInt(input, 10);
       if (isNaN(port) || port < 1024 || port > 65535) {
@@ -288,7 +288,7 @@ async function setupApiServer(config) {
     ...config,
     server: {
       ...config.server,
-      claudeApiPort: parseInt(answers.port, 10)
+      geminiApiPort: parseInt(answers.port, 10)
     }
   };
 }
@@ -315,9 +315,9 @@ async function setupVoiceServer(config) {
     config.deployment.mode = 'voice-server';
   }
 
-  // Step 1: 3CX/SIP Configuration
-  console.log(chalk.bold('\n☎️  SIP Configuration'));
-  config = await setupSIP(config);
+  // Step 1: Twilio/SIP Configuration
+  console.log(chalk.bold('\n☎️  Twilio Configuration'));
+  config = await setupTwilio(config);
 
   // Step 2: API Server Connection
   console.log(chalk.bold('\n🖥️  API Server Connection'));
@@ -341,7 +341,7 @@ async function setupVoiceServer(config) {
       type: 'input',
       name: 'apiServerPort',
       message: 'API Server port:',
-      default: config.server?.claudeApiPort || 3333,
+      default: config.server?.geminiApiPort || 3333,
       validate: (input) => {
         const port = parseInt(input, 10);
         if (isNaN(port) || port < 1024 || port > 65535) {
@@ -354,7 +354,7 @@ async function setupVoiceServer(config) {
 
   config.deployment.apiServerIp = apiServerAnswers.apiServerIp;
   config.server = config.server || {};
-  config.server.claudeApiPort = parseInt(apiServerAnswers.apiServerPort, 10);
+  config.server.geminiApiPort = parseInt(apiServerAnswers.apiServerPort, 10);
 
   // Step 3: API Keys (for TTS/STT)
   console.log(chalk.bold('\n📡 API Configuration'));
@@ -429,9 +429,9 @@ async function setupBoth(config) {
   console.log(chalk.bold('\n📡 API Configuration'));
   config = await setupAPIKeys(config);
 
-  // Step 2: 3CX/SIP Configuration
-  console.log(chalk.bold('\n☎️  SIP Configuration'));
-  config = await setupSIP(config);
+  // Step 2: Twilio/SIP Configuration
+  console.log(chalk.bold('\n☎️  Twilio Configuration'));
+  config = await setupTwilio(config);
 
   // Step 3: Device Configuration
   console.log(chalk.bold('\n🤖 Device Configuration'));
@@ -518,47 +518,9 @@ async function setupPi(config) {
     }
   }
 
-  // Detect 3CX SBC (AC24: Handle port detection failure)
+  // TODO: Add Twilio-specific network configuration if needed
   console.log(chalk.bold('\n🔍 Network Detection'));
-  const sbc3cxSpinner = ora('Checking for 3CX SBC (process + UDP/TCP port 5060)...').start();
-
-  let has3cxSbc;
-  let portCheckError = false;
-
-  try {
-    has3cxSbc = await detect3cxSbc();
-    if (has3cxSbc) {
-      sbc3cxSpinner.succeed('3CX SBC detected - will use port 5070 for drachtio');
-    } else {
-      sbc3cxSpinner.succeed('No 3CX SBC detected - will use standard port 5060');
-    }
-  } catch (err) {
-    portCheckError = true;
-    sbc3cxSpinner.warn('Port detection failed: ' + err.message);
-  }
-
-  // AC24: Manual override when port detection fails
-  if (portCheckError) {
-    console.log(chalk.yellow('\n⚠️  Could not automatically detect 3CX SBC'));
-    const { manualSbc } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'manualSbc',
-        message: 'Is 3CX SBC running on port 5060?',
-        default: false
-      }
-    ]);
-    has3cxSbc = manualSbc;
-
-    if (has3cxSbc) {
-      console.log(chalk.green('✓ Will use port 5070 for drachtio (avoid conflict with SBC)\n'));
-    } else {
-      console.log(chalk.green('✓ Will use port 5060 for drachtio\n'));
-    }
-  }
-
-  config.deployment.pi.has3cxSbc = has3cxSbc;
-  config.deployment.pi.drachtioPort = has3cxSbc ? 5070 : 5060;
+  console.log(chalk.gray('  (3CX SBC detection removed)'));
 
   // Ask for API server IP and port first, then check connectivity
   const apiServerAnswers = await inquirer.prompt([
@@ -579,9 +541,9 @@ async function setupPi(config) {
     },
     {
       type: 'input',
-      name: 'claudeApiPort',
-      message: 'Claude API server port:',
-      default: String(config.server?.claudeApiPort || 3333),
+      name: 'geminiApiPort',
+      message: 'Gemini API server port:',
+      default: String(config.server?.geminiApiPort || 3333),
       validate: (input) => {
         const port = parseInt(input, 10);
         if (isNaN(port) || port < 1024 || port > 65535) {
@@ -592,22 +554,22 @@ async function setupPi(config) {
     }
   ]);
 
-  const { macIp, claudeApiPort } = apiServerAnswers;
+  const { macIp, geminiApiPort } = apiServerAnswers;
 
   config.deployment.pi.macIp = macIp;
   config.server = config.server || {};
-  config.server.claudeApiPort = parseInt(claudeApiPort, 10);
+  config.server.geminiApiPort = parseInt(geminiApiPort, 10);
 
   // Now check connectivity on the specified port
-  const reachSpinner = ora(`Checking API server at ${macIp}:${claudeApiPort}...`).start();
-  const apiUrl = `http://${macIp}:${claudeApiPort}`;
+  const reachSpinner = ora(`Checking API server at ${macIp}:${geminiApiPort}...`).start();
+  const apiUrl = `http://${macIp}:${geminiApiPort}`;
   const apiHealth = await checkClaudeApiServer(apiUrl);
 
   if (apiHealth.healthy) {
     reachSpinner.succeed(`API server is healthy at ${apiUrl}`);
   } else if (apiHealth.reachable) {
     reachSpinner.warn(`API server reachable but not responding at ${apiUrl}`);
-    console.log(chalk.yellow('  ⚠️  Make sure claude-api-server is running\n'));
+    console.log(chalk.yellow('  ⚠️  Make sure gemini-api-server is running\n'));
   } else {
     reachSpinner.warn(`Cannot reach API server at ${apiUrl}`);
     console.log(chalk.yellow('  ⚠️  Make sure API server is running and port is open (firewall)\n'));
@@ -617,9 +579,9 @@ async function setupPi(config) {
   console.log(chalk.bold('\n📡 API Configuration'));
   config = await setupAPIKeys(config);
 
-  // Step 2: 3CX SBC Configuration (Pi mode uses SBC)
-  console.log(chalk.bold('\n📡 3CX SBC Connection'));
-  config = await setupSBC(config);
+  // Step 2: Twilio Configuration (Pi mode)
+  console.log(chalk.bold('\n📡 Twilio Configuration'));
+  config = await setupTwilio(config);
 
   // Step 3: Device Configuration
   console.log(chalk.bold('\n🤖 Device Configuration'));
@@ -643,12 +605,12 @@ async function setupPi(config) {
   console.log(chalk.bold.green('\n✓ Pi Setup complete!\n'));
   console.log(chalk.bold.cyan('📋 API server instructions:\n'));
   console.log(chalk.gray('  On your API server, run:'));
-  console.log(chalk.white(`    claude-phone api-server --port ${config.server.claudeApiPort}\n`));
-  console.log(chalk.gray('  This starts the Claude API wrapper that the Pi will connect to.\n'));
+  console.log(chalk.white(`    gemini-phone api-server --port ${config.server.geminiApiPort}\n`));
+  console.log(chalk.gray('  This starts the Gemini API wrapper that the Pi will connect to.\n'));
   console.log(chalk.bold.cyan('📋 Pi-side next steps:\n'));
-  console.log(chalk.gray('  1. Run "claude-phone start" to launch voice-app'));
+  console.log(chalk.gray('  1. Run "gemini-phone start" to launch voice-app'));
   console.log(chalk.gray('  2. Call extension ' + config.devices[0].extension + ' from your phone'));
-  console.log(chalk.gray('  3. Start talking to Claude!\n'));
+  console.log(chalk.gray('  3. Start talking to Gemini!\n'));
 
   return config;
 }
@@ -670,15 +632,14 @@ function createDefaultConfig() {
     version: '1.0.0',
     api: {
       elevenlabs: { apiKey: '', defaultVoiceId: '', validated: false },
-      openai: { apiKey: '', validated: false }
+      gemini: { apiKey: '', validated: false }
     },
-    sip: {
-      domain: '',
-      registrar: '',
-      transport: 'udp'
+    twilio: {
+      accountSid: '',
+      authToken: ''
     },
     server: {
-      claudeApiPort: 3333,
+      geminiApiPort: 3333,
       httpPort: 3000,
       externalIp: 'auto'
     },
@@ -689,7 +650,7 @@ function createDefaultConfig() {
     devices: [],
     paths: {
       voiceApp: path.join(getProjectRoot(), 'voice-app'),
-      claudeApiServer: path.join(getProjectRoot(), 'claude-api-server')
+      geminiApiServer: path.join(getProjectRoot(), 'gemini-api-server')
     }
   };
 }
@@ -784,13 +745,13 @@ async function setupAPIKeys(config) {
     config.api.elevenlabs.defaultVoiceId = defaultVoiceId;
   }
 
-  // OpenAI API Key
-  const openAIAnswers = await inquirer.prompt([
+  // Gemini API Key
+  const geminiAnswers = await inquirer.prompt([
     {
       type: 'password',
       name: 'apiKey',
-      message: 'OpenAI API key (for Whisper STT):',
-      default: config.api.openai.apiKey,
+      message: 'Gemini API key:',
+      default: config.api.gemini.apiKey,
       validate: (input) => {
         if (!input || input.trim() === '') {
           return 'API key is required';
@@ -800,12 +761,12 @@ async function setupAPIKeys(config) {
     }
   ]);
 
-  const openAIKey = openAIAnswers.apiKey;
-  const openAISpinner = ora('Validating OpenAI API key...').start();
+  const geminiKey = geminiAnswers.apiKey;
+  const geminiSpinner = ora('Validating Gemini API key...').start();
 
-  const openAIResult = await validateOpenAIKey(openAIKey);
-  if (!openAIResult.valid) {
-    openAISpinner.fail(`Invalid OpenAI API key: ${openAIResult.error}`);
+  const geminiResult = await validateGeminiKey(geminiKey);
+  if (!geminiResult.valid) {
+    geminiSpinner.fail(`Invalid Gemini API key: ${geminiResult.error}`);
     console.log(chalk.yellow('\n⚠️  You can continue setup, but the key may not work.'));
     const { continueAnyway } = await inquirer.prompt([
       {
@@ -820,95 +781,61 @@ async function setupAPIKeys(config) {
       throw new Error('Setup cancelled due to invalid API key');
     }
 
-    config.api.openai = { apiKey: openAIKey, validated: false };
+    config.api.gemini = { apiKey: geminiKey, validated: false };
   } else {
-    openAISpinner.succeed('OpenAI API key validated');
-    config.api.openai = { apiKey: openAIKey, validated: true };
+    geminiSpinner.succeed('Gemini API key validated');
+    config.api.gemini = { apiKey: geminiKey, validated: true };
   }
 
   return config;
 }
 
 /**
- * Setup SIP configuration (standard mode)
+ * Setup Twilio configuration
  * @param {object} config - Current config
  * @returns {Promise<object>} Updated config
  */
-async function setupSIP(config) {
+async function setupTwilio(config) {
+  // TODO: Add validation for Twilio credentials
+  // TODO: Add prompt for Twilio SIP Domain or Phone Number
   const answers = await inquirer.prompt([
     {
-      type: 'input',
-      name: 'domain',
-      message: '3CX domain (e.g., your-3cx.3cx.us):',
-      default: config.sip.domain,
+      type: 'password',
+      name: 'accountSid',
+      message: 'Twilio Account SID:',
+      default: config.twilio?.accountSid,
       validate: (input) => {
         if (!input || input.trim() === '') {
-          return 'SIP domain is required';
-        }
-        if (!validateHostname(input)) {
-          return 'Invalid hostname format';
+          return 'Twilio Account SID is required';
         }
         return true;
       }
     },
     {
-      type: 'input',
-      name: 'registrar',
-      message: '3CX registrar IP (e.g., 192.168.1.100):',
-      default: config.sip.registrar,
+      type: 'password',
+      name: 'authToken',
+      message: 'Twilio Auth Token:',
+      default: config.twilio?.authToken,
       validate: (input) => {
         if (!input || input.trim() === '') {
-          return 'SIP registrar IP is required';
-        }
-        if (!validateIP(input)) {
-          return 'Invalid IP address format';
+          return 'Twilio Auth Token is required';
         }
         return true;
       }
     }
   ]);
 
-  config.sip.domain = answers.domain;
-  config.sip.registrar = answers.registrar;
+  if (!config.twilio) {
+    config.twilio = {};
+  }
+
+  config.twilio.accountSid = answers.accountSid;
+  config.twilio.authToken = answers.authToken;
 
   return config;
 }
 
-/**
- * Setup SBC configuration (Pi mode only)
- * @param {object} config - Current config
- * @returns {Promise<object>} Updated config
- */
-async function setupSBC(config) {
-  // Display pre-requisite information
-  console.log(chalk.cyan('\nℹ️  Pre-requisite: You must create an SBC in 3CX Admin first'));
-  console.log(chalk.gray('   (Admin → Settings → SBC → Add SBC → Raspberry Pi)\n'));
 
-  const answers = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'fqdn',
-      message: '3CX FQDN (e.g., mycompany.3cx.us):',
-      default: config.sip.domain,
-      validate: (input) => {
-        if (!input || input.trim() === '') {
-          return '3CX FQDN is required';
-        }
-        if (!validateHostname(input)) {
-          return 'Invalid hostname format';
-        }
-        return true;
-      }
-    }
-  ]);
-
-  // Domain is the 3CX FQDN (for From/To SIP headers)
-  config.sip.domain = answers.fqdn;
-  // Registrar is the LOCAL SBC (drachtio registers with local SBC, not cloud)
-  config.sip.registrar = '127.0.0.1';
-
-  return config;
-}
 
 /**
  * Setup device configuration
@@ -1064,9 +991,9 @@ async function setupServer(config) {
     },
     {
       type: 'input',
-      name: 'claudeApiPort',
-      message: 'Claude API server port:',
-      default: config.server.claudeApiPort,
+      name: 'geminiApiPort',
+      message: 'Gemini API server port:',
+      default: config.server.geminiApiPort,
       validate: (input) => {
         const port = parseInt(input, 10);
         if (isNaN(port) || port < 1024 || port > 65535) {

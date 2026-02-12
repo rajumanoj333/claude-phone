@@ -1,4 +1,151 @@
 import axios from 'axios';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+/**
+ * Validate ElevenLabs API key by making a test request
+ * @param {string} apiKey - ElevenLabs API key
+ * @returns {Promise<{valid: boolean, error?: string}>} Validation result
+ */
+export async function validateElevenLabsKey(apiKey) {
+  if (!apiKey || apiKey.trim() === '') {
+    return {
+      valid: false,
+      error: 'API key cannot be empty'
+    };
+  }
+
+  try {
+    const response = await axios.get('https://api.elevenlabs.io/v1/voices', {
+      headers: {
+        'xi-api-key': apiKey
+      },
+      timeout: 10000
+    });
+
+    if (response.status === 200) {
+      return { valid: true };
+    }
+
+    return {
+      valid: false,
+      error: `Unexpected status: ${response.status}`
+    };
+  } catch (error) {
+    if (error.response) {
+      if (error.response.status === 401) {
+        return {
+          valid: false,
+          error: 'Invalid API key (401 Unauthorized)'
+        };
+      }
+      return {
+        valid: false,
+        error: `API error: ${error.response.status} ${error.response.statusText}`
+      };
+    }
+
+    if (error.code === 'ECONNABORTED') {
+      return {
+        valid: false,
+        error: 'Request timeout - check your internet connection'
+      };
+    }
+
+    return {
+      valid: false,
+      error: `Network error: ${error.message}`
+    };
+  }
+}
+
+/**
+ * Validate OpenAI API key by making a test request
+ * @param {string} apiKey - OpenAI API key
+ * @returns {Promise<{valid: boolean, error?: string}>} Validation result
+ */
+export async function validateOpenAIKey(apiKey) {
+  if (!apiKey || apiKey.trim() === '') {
+    return {
+      valid: false,
+      error: 'API key cannot be empty'
+    };
+  }
+
+  try {
+    const response = await axios.get('https://api.openai.com/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`
+      },
+      timeout: 10000
+    });
+
+    if (response.status === 200) {
+      return { valid: true };
+    }
+
+    return {
+      valid: false,
+      error: `Unexpected status: ${response.status}`
+    };
+  } catch (error) {
+    if (error.response) {
+      if (error.response.status === 401) {
+        return {
+          valid: false,
+          error: 'Invalid API key (401 Unauthorized)'
+        };
+      }
+      return {
+        valid: false,
+        error: `API error: ${error.response.status} ${error.response.statusText}`
+      };
+    }
+
+    if (error.code === 'ECONNABORTED') {
+      return {
+        valid: false,
+        error: 'Request timeout - check your internet connection'
+      };
+    }
+
+    return {
+      valid: false,
+      error: `Network error: ${error.message}`
+    };
+  }
+}
+
+/**
+ * Validate Gemini API key by making a test request
+ * @param {string} apiKey - Gemini API key
+ * @returns {Promise<{valid: boolean, error?: string}>} Validation result
+ */
+export async function validateGeminiKey(apiKey) {
+  if (!apiKey || apiKey.trim() === '') {
+    return {
+      valid: false,
+      error: 'API key cannot be empty'
+    };
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    // Attempt to list models to validate the API key
+    await genAI.listModels();
+    return { valid: true };
+  } catch (error) {
+    if (error.message.includes('API key not valid')) {
+      return {
+        valid: false,
+        error: 'Invalid Gemini API key'
+      };
+    }
+    return {
+      valid: false,
+      error: `Gemini API error: ${error.message}`
+    };
+  }
+}
 
 /**
  * Validate ElevenLabs API key by making a test request

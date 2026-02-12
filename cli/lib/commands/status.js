@@ -117,10 +117,6 @@ async function showVoiceServerStatus(config, isPiSplit, installationType) {
     console.log(chalk.gray(`  Deployment Mode: Pi Split`));
     console.log(chalk.gray(`  Pi IP: ${config.server.externalIp}`));
     console.log(chalk.gray(`  API Server IP: ${config.deployment.pi.macIp}`));
-    console.log(chalk.gray(`  Drachtio Port: ${config.deployment.pi.drachtioPort}`));
-    if (config.deployment.pi.has3cxSbc) {
-      console.log(chalk.yellow('  3CX SBC detected (using port 5070)'));
-    }
   } else if (installationType === 'voice-server') {
     console.log(chalk.gray(`  Deployment Mode: Voice Server`));
     console.log(chalk.gray(`  Server IP: ${config.server.externalIp}`));
@@ -132,8 +128,7 @@ async function showVoiceServerStatus(config, isPiSplit, installationType) {
     console.log(chalk.gray(`  External IP: ${config.server.externalIp}`));
   }
 
-  if (config.sip) {
-    console.log(chalk.gray(`  SIP Domain: ${config.sip.domain}`));
-    console.log(chalk.gray(`  SIP Registrar: ${config.sip.registrar}`));
+  if (config.twilio) {
+    console.log(chalk.gray(`  Twilio Account SID: ${config.twilio.accountSid}`));
   }
 }
